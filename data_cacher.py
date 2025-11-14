@@ -8,8 +8,6 @@ class DataCacher:
     """
     Simple in-memory cache with Time-To-Live (TTL) functionality.
 
-    This prevents excessive calls to the external cryptocurrency API,
-    adhering to best practices for rate-limiting and efficiency.
     """
     def __init__(self, default_ttl: int = DEFAULT_TTL_SECONDS):
         # Cache storage: {key: (timestamp_ms, ttl_ms, data)}

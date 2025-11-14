@@ -70,6 +70,7 @@ async def get_exchange_markets(exchange: ccxt.Exchange = Depends(get_exchange_in
     if not markets:
         try:
             markets = await exchange.load_markets()
+            # Cache market list for 1 hour to reduce startup lag
             CACHE.set(cache_key, markets, ttl=(60 * 60)) 
         except Exception as e:
             raise HTTPException(
@@ -81,7 +82,7 @@ async def get_exchange_markets(exchange: ccxt.Exchange = Depends(get_exchange_in
 
 def validate_symbol(symbol: str, markets: Dict[str, Any]):
     """Checks if the symbol is valid and available on the exchange."""
-    # Ensure symbols are standardized to uppercase for the exchange API
+    # Standardize symbol to uppercase for the exchange API
     symbol = symbol.upper()
     if symbol not in markets:
         raise HTTPException(
@@ -117,7 +118,6 @@ async def system_status(exchange: ccxt.Exchange = Depends(get_exchange_instance)
         )
 
 
-# FIX: Added ':path' converter to handle slashes in symbols (e.g., BTC/USDT)
 @app.get("/realtime/{symbol:path}", response_model=TickerResponse, status_code=status.HTTP_200_OK)
 async def get_realtime_price(
     symbol: str, 
@@ -130,12 +130,12 @@ async def get_realtime_price(
     symbol = validate_symbol(symbol, markets)
     cache_key = f"ticker:{symbol}"
     
-    # 1. Check cache (Cache Hit)
+    # Check cache for recent data
     cached_data = CACHE.get(cache_key)
     if cached_data:
         return cached_data
 
-    # 2. Fetch from exchange (Cache Miss)
+    # If cache miss, fetch data from the exchange
     try:
         ticker = await exchange.fetch_ticker(symbol)
         
@@ -146,7 +146,7 @@ async def get_realtime_price(
             source_exchange=EXCHANGE_ID
         )
         
-        # 3. Store in cache (default 5s TTL)
+        # Store in cache with the default 5s TTL
         CACHE.set(cache_key, response_data)
         
         return response_data
@@ -163,7 +163,6 @@ async def get_realtime_price(
         )
 
 
-# FIX: Added ':path' converter to handle slashes in symbols (e.g., BTC/USDT)
 @app.get("/historical/{symbol:path}", response_model=HistoricalResponse, status_code=status.HTTP_200_OK)
 async def get_historical_data(
     symbol: str,
@@ -183,15 +182,15 @@ async def get_historical_data(
             detail=f"Invalid timeframe: '{timeframe}'. Supported: {', '.join(exchange.timeframes.keys())}"
         )
 
-    # Use a unique cache key based on all query parameters
+    # Key includes all query parameters for uniqueness
     cache_key = f"ohlcv:{symbol}:{timeframe}:{limit}"
     
-    # 1. Check cache (Cache Hit)
+    # Check cache for recent data
     cached_data = CACHE.get(cache_key)
     if cached_data:
         return cached_data
 
-    # 2. Fetch from exchange (Cache Miss)
+    # If cache miss, fetch data from the exchange
     try:
         ohlcv = await exchange.fetch_ohlcv(symbol, timeframe, limit=limit)
 
@@ -220,7 +219,7 @@ async def get_historical_data(
             count=len(data_points)
         )
         
-        # 3. Store in cache with a 60 minute TTL
+        # Store data with a 60 minute TTL, as historical data is static
         CACHE.set(cache_key, response_data, ttl=(60 * 60)) 
 
         return response_data
@@ -236,7 +235,6 @@ async def get_historical_data(
             detail=f"A network or processing error occurred: {e}"
         )
 
-# --- Server Shutdown Hook ---
 
 @app.on_event("shutdown")
 async def shutdown_event():
