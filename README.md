@@ -1,6 +1,6 @@
 # 💰 Cryptocurrency Market Data Protocol (MCP) Server
 
-**Submission for [Internship Role]**
+
 
 A robust, asynchronous, and fully tested server that provides **real-time** and **historical** cryptocurrency market data.  
 The system is designed following modern Market Data Protocol (MCP) principles: **caching**, **clear data contracts**, and **high reliability**.
