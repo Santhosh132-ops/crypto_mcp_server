@@ -1,0 +1,26 @@
+# Virtual environments
+.venv
+venv/
+env/
+/bin
+/include
+/lib
+/lib64
+/pyvenv.cfg
+/share
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.pyc
+*.pyd
+*.so
+*.egg
+
+# Testing/Coverage
+.pytest_cache/
+htmlcov/
+.coverage
+
+# Editor/OS Specific
+.vscode/
+.DS_Store

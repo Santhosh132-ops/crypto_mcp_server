@@ -1,0 +1,12 @@
+# Core Server Dependencies 
+fastapi
+uvicorn[standard]
+pydantic
+
+# Data Fetching Library
+ccxt
+
+# Testing Dependencies
+pytest
+httpx
+pytest-asyncio
