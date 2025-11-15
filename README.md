@@ -1,4 +1,4 @@
-# 💰 Cryptocurrency Market Data Protocol (MCP) Server
+# 💰 Cryptocurrency Market Data - MCP Server
 
 
 
