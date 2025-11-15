@@ -1,4 +1,4 @@
-# 💰 Cryptocurrency Market Data - MCP Server
+# 💰 Cryptocurrency Market Data Protocol (MCP) Server
 
 
 
@@ -48,7 +48,7 @@ This system achieves that using:
 
 
 
-# 2. Setup and Validation (Evaluator’s Guide)
+#  Setup and Validation (Evaluator’s Guide)
 
 
 -  Clone the repository  
@@ -60,7 +60,7 @@ pip install -r requirements.txt
 
 
 
- ✅ Running Tests
+ 
 
 The project includes a comprehensive test suite   (test_crypto_data.py) covering:
 
@@ -81,7 +81,7 @@ The project includes a comprehensive test suite   (test_crypto_data.py) covering
 ```
 # Expected output:
 ```bash
-7 passed
+9 passed
 ```
 # API Usage Guide:
 Start the Server
@@ -93,6 +93,40 @@ Open Swagger UI:
 ```bash
 http://127.0.0.1:8000/docs
 ```
+# Authentication Requirement
+ All /realtime and /historical endpoints are protected and  require the following HTTP Header:
+
+ - Header: X-API-Key
+
+ - Value: SECURE_DEV_KEY_12345
+
+ # Testing the Secured Endpoint (API Key Authentication)
+
+  🛑 Browser Test (Access Denied)
+ - If you try to access the route directly through a browser, it will fail because the browser cannot send custom headers on simple GET requests.
+
+  - Action: Paste the URL below into your browser's address bar.
+  ```bash
+  http://127.0.0.1:8000/realtime/BTC/USDT
+  ```
+   - Result: You will receive a 403 Forbidden error, with the JSON response:
+   ```bash
+   {"detail": "Invalid API Key. Access denied."}
+   
+   ```
+
+
+   ✅ Terminal Test (curl Success)
+   
+  - You must use a tool like curl to manually inject the required header, proving the security mechanism works.
+
+  - Action: Run the following command in your terminal (VS Code terminal is perfect for this).
+  ```bash
+  curl -H "X-API-Key: SECURE_DEV_KEY_12345" http://127.0.0.1:8000/realtime/BTC/USDT
+  ```
+  - Result: The request will succeed, returning the full JSON market data (price, timestamp, etc.).
+  
+
 # Endpoint Examples
 | Feature                      | Example URL                                                      | Description                         |
 | ---------------------------- | ---------------------------------------------------------------- | ----------------------------------- |
@@ -117,6 +151,7 @@ This difference confirms that the caching layer is functioning correctly — a d
 # ⭐ Features
 
  - ⚡ Async FastAPI backend
+ - 🛡 API Key Authentication
 
  - 🔄 5-second TTL caching
 
@@ -138,5 +173,6 @@ This difference confirms that the caching layer is functioning correctly — a d
 | **404 for trading pair** | Symbol may not exist on Binance.                  |
 | **Tests failing**        | Ensure stable internet (CCXT fetches live data).  |
 | **Server doesn't start** | Use correct module path: `crypto_data_server:app` |
+| **403 Forbidden** |Missing or incorrect X-API-Key header.|
 
 
