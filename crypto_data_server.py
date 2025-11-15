@@ -1,7 +1,7 @@
 import ccxt.async_support as ccxt
 import time
 from typing import List, Optional, Dict, Any
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, Header # <- ADDED Header
 from pydantic import BaseModel, Field
 
 # Import the caching utility
@@ -34,9 +34,11 @@ class HistoricalResponse(BaseModel):
     count: int = Field(..., description="Number of candles returned.")
 
 
-# --- Exchange and Application Initialization ---
+# --- Security and Exchange Initialization ---
 
 EXCHANGE_ID = 'binance'
+# Define a simple, hardcoded API Key for demonstration purposes
+API_KEY = "SECURE_DEV_KEY_12345" 
 
 try:
     ExchangeClass = getattr(ccxt, EXCHANGE_ID)
@@ -56,7 +58,22 @@ app = FastAPI(
 )
 
 
-# --- Dependency Injectors and Utility Functions ---
+# --- Security Dependency ---
+
+def authenticate_api_key(x_api_key: Optional[str] = Header(None, alias="X-API-Key")):
+    """
+    Checks the 'X-API-Key' header against the expected secret key.
+    Raises 403 Forbidden if the key is invalid.
+    """
+    if x_api_key != API_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid API Key. Access denied."
+        )
+    return x_api_key
+
+
+# --- Other Dependencies and Utility Functions ---
 
 async def get_exchange_instance():
     """Dependency that yields the global CCXT exchange instance."""
@@ -82,7 +99,6 @@ async def get_exchange_markets(exchange: ccxt.Exchange = Depends(get_exchange_in
 
 def validate_symbol(symbol: str, markets: Dict[str, Any]):
     """Checks if the symbol is valid and available on the exchange."""
-    # Standardize symbol to uppercase for the exchange API
     symbol = symbol.upper()
     if symbol not in markets:
         raise HTTPException(
@@ -110,6 +126,7 @@ async def system_status(exchange: ccxt.Exchange = Depends(get_exchange_instance)
             "exchange_status": "connected",
             "exchange_time_ms": server_time,
             "cache_ttl_seconds": CACHE.default_ttl_ms / 1000,
+            "note": "API access requires X-API-Key header with the value 'SECURE_DEV_KEY_12345'."
         }
     except Exception as e:
         raise HTTPException(
@@ -118,7 +135,10 @@ async def system_status(exchange: ccxt.Exchange = Depends(get_exchange_instance)
         )
 
 
-@app.get("/realtime/{symbol:path}", response_model=TickerResponse, status_code=status.HTTP_200_OK)
+@app.get("/realtime/{symbol:path}", 
+         response_model=TickerResponse, 
+         status_code=status.HTTP_200_OK,
+         dependencies=[Depends(authenticate_api_key)]) # <- ADDED SECURITY
 async def get_realtime_price(
     symbol: str, 
     exchange: ccxt.Exchange = Depends(get_exchange_instance),
@@ -163,7 +183,10 @@ async def get_realtime_price(
         )
 
 
-@app.get("/historical/{symbol:path}", response_model=HistoricalResponse, status_code=status.HTTP_200_OK)
+@app.get("/historical/{symbol:path}", 
+         response_model=HistoricalResponse, 
+         status_code=status.HTTP_200_OK,
+         dependencies=[Depends(authenticate_api_key)]) # <- ADDED SECURITY
 async def get_historical_data(
     symbol: str,
     timeframe: str = '1h', 
